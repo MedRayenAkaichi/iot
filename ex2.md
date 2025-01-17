@@ -1,3 +1,4 @@
+```mermaid
 sequenceDiagram
     actor Moderator as Modérateur
     actor Voter as Votant
