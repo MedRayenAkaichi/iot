@@ -1,40 +1,42 @@
 sequenceDiagram
-    participant Modérateur
-    participant Système
-    participant Votant
+    actor Moderator as Modérateur
+    actor Voter as Votant
+    participant MQTT as Système MQTT
 
-    %% 1. Connexion du modérateur au système
-    Modérateur->>Système: Connexion (MQTT CONNECT)
-    Système-->>Modérateur: Connexion acceptée (CONNACK)
+    %% Connexion du modérateur
+    Moderator->>MQTT: Connexion au système
+    MQTT-->>Moderator: Confirmation de connexion
 
-    %% 2. Création de la session et partage du Token
-    Modérateur->>Système: Création de session (CREATE_SESSION + Token)
-    Système-->>Modérateur: Session créée (SESSION_ACK)
-    Modérateur->>Votant: Partage du Token (Token distribué hors MQTT)
+    %% Création d'une session
+    Moderator->>MQTT: Créer une session (génération du Token)
+    MQTT-->>Moderator: Token généré et partagé
 
-    %% 3. Connexion du votant au système
-    Votant->>Système: Connexion (MQTT CONNECT)
-    Système-->>Votant: Connexion acceptée (CONNACK)
+    %% Connexion d'un votant
+    Voter->>MQTT: Connexion au système
+    MQTT-->>Voter: Confirmation de connexion
 
-    %% 4. Votant rejoint la session
-    Votant->>Système: Rejoindre session (JOIN_SESSION + Token)
-    Système-->>Modérateur: Notification de nouveau votant (NEW_PARTICIPANT)
-    Système-->>Votant: Confirmation d'accès à la session (SESSION_JOINED)
+    %% Participation du votant à la session
+    Voter->>MQTT: Rejoindre la session (avec le Token)
+    MQTT-->>Voter: Confirmation de participation
+    MQTT-->>Moderator: Mise à jour du tableau de bord (votant connecté)
 
-    %% 5. Création d'un vote par le modérateur
-    Modérateur->>Système: Création du vote (CREATE_VOTE + Sujet + Options)
-    Système-->>Votant: Notification du vote actif (NEW_VOTE + Sujet + Options)
+    %% Création d'un vote
+    Moderator->>MQTT: Création d'un vote (sujet et options)
+    MQTT-->>Moderator: Confirmation de création du vote
+    MQTT-->>Voter: Notification d'un nouveau vote
 
-    %% 6. Participation au vote par le votant
-    Votant->>Système: Participation au vote (VOTE + Option choisie)
-    Système-->>Modérateur: Mise à jour des résultats (VOTE_UPDATE)
+    %% Participation au vote
+    Voter->>MQTT: Envoi de son choix
+    MQTT-->>Moderator: Mise à jour des résultats en temps réel
 
-    %% 7. Clôture du vote par le modérateur
-    Modérateur->>Système: Clôture du vote (CLOSE_VOTE)
-    Système-->>Votant: Notification de clôture (VOTE_CLOSED)
-    Système-->>Modérateur: Résultats finaux (FINAL_RESULTS)
+    %% Déconnexion détectée
+    MQTT-->>Moderator: Alerte - Votant déconnecté (si inactivité > 3s)
 
-    %% 8. Clôture de la session par le modérateur
-    Modérateur->>Système: Clôture de session (CLOSE_SESSION)
-    Système-->>Votant: Notification de fin de session (SESSION_CLOSED)
-    Système-->>Modérateur: Confirmation de clôture (SESSION_TERMINATED)
+    %% Clôture du vote
+    Moderator->>MQTT: Clôture du vote
+    MQTT-->>Moderator: Confirmation de clôture du vote
+
+    %% Clôture de la session
+    Moderator->>MQTT: Clôture de la session
+    MQTT-->>Moderator: Confirmation de clôture de la session
+    MQTT-->>Voter: Notification de clôture de session
